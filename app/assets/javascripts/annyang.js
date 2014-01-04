@@ -1,5 +1,5 @@
 //! annyang
-//! version : 0.2.0
+//! version : 1.0.0
 //! author  : Tal Ater @TalAter
 //! license : MIT
 //! https://www.TalAter.com/annyang/
@@ -10,15 +10,15 @@
   var root = this;
 
   // Get the SpeechRecognition object, while handling browser prefixes
-  var SpeechRecognition = root.webkitSpeechRecognition ||
+  var SpeechRecognition = root.SpeechRecognition ||
+                          root.webkitSpeechRecognition ||
                           root.mozSpeechRecognition ||
                           root.msSpeechRecognition ||
-                          root.oSpeechRecognition ||
-                          root.SpeechRecognition;
+                          root.oSpeechRecognition;
 
   // Check browser support
   // This is done as early as possible, to make it as fast as possible for unsupported browsers
-  if ( !SpeechRecognition ) {
+  if (!SpeechRecognition) {
     root.annyang = null;
     return null;
   }
@@ -51,9 +51,9 @@
 
   // This method receives an array of callbacks to iterate over, and invokes each of them
   var invokeCallbacks = function(callbacks) {
-    for (var j = 0, l = callbacks.length; j < l; j++) {
-      callbacks[j].callback.apply(callbacks[j].context);
-    }
+    callbacks.forEach(function(callback) {
+      callback.callback.apply(callback.context);
+    });
   };
 
   root.annyang = {
@@ -209,6 +209,19 @@
       if (debugState) {
         root.console.log('Commands successfully loaded: %c'+commandsList.length, debugStyle);
       }
+    },
+
+    // Remove existing commands. Called with a single phrase or an array of phrases
+    removeCommands: function(commandsToRemove) {
+      commandsToRemove = Array.isArray(commandsToRemove) ? commandsToRemove : [commandsToRemove];
+      commandsList = commandsList.filter(function(command) {
+        for (var i = 0; i<commandsToRemove.length; i++) {
+          if (commandsToRemove[i] === command.originalPhrase) {
+            return false;
+          }
+        }
+        return true;
+      });
     },
 
     // Lets the user add a callback of one of 9 types:
