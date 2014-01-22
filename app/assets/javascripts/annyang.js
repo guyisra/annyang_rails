@@ -1,9 +1,9 @@
 //! annyang
-//! version : 1.0.0
+//! version : 1.1.0
 //! author  : Tal Ater @TalAter
 //! license : MIT
 //! https://www.TalAter.com/annyang/
-(function () {
+(function (undefined) {
   "use strict";
 
   // Save a reference to the global object (window in the browser)
@@ -20,12 +20,11 @@
   // This is done as early as possible, to make it as fast as possible for unsupported browsers
   if (!SpeechRecognition) {
     root.annyang = null;
-    return null;
+    return undefined;
   }
 
-  var commandsList;
+  var commandsList = [];
   var recognition;
-  var lang = 'en-US';
   var callbacks = { start: [], error: [], end: [], result: [], resultMatch: [], resultNoMatch: [], errorNetwork: [], errorPermissionBlocked: [], errorPermissionDenied: [] };
   var autoRestart;
   var lastStartedAt = 0;
@@ -56,11 +55,28 @@
     });
   };
 
+  var initIfNeeded = function() {
+    if (!isInitialized()) {
+      root.annyang.init({}, false);
+    }
+  };
+
+  var isInitialized = function() {
+    return recognition !== undefined;
+  };
+
   root.annyang = {
     // Initialize annyang with a list of commands to recognize.
     // e.g. annyang.init({'hello :name': helloFunction})
     // annyang understands commands with named variables, splats, and optional words.
-    init: function(commands) {
+    init: function(commands, resetCommands) {
+
+      // resetCommands defaults to true
+      if (resetCommands === undefined) {
+        resetCommands = true;
+      } else {
+        resetCommands = !!resetCommands;
+      }
 
       // Abort previous instances of recognition already running
       if (recognition && recognition.abort) {
@@ -74,7 +90,7 @@
       recognition.maxAlternatives = 5;
       recognition.continuous = true;
       // Sets the language to the default 'en-US'. This can be changed with annyang.setLanguage()
-      recognition.lang = lang;
+      recognition.lang = 'en-US';
 
       recognition.onstart   = function()      { invokeCallbacks(callbacks.start); };
 
@@ -147,8 +163,12 @@
       };
 
       // build commands list
-      commandsList = [];
-      this.addCommands(commands);
+      if (resetCommands) {
+        commandsList = [];
+      }
+      if (commands.length) {
+        this.addCommands(commands);
+      }
     },
 
     // Start listening (asking for permission first, if needed).
@@ -156,8 +176,9 @@
     // Receives an optional options object:
     // { autoRestart: true }
     start: function(options) {
+      initIfNeeded();
       options = options || {};
-      if (options.autoRestart !== void 0) {
+      if (options.autoRestart !== undefined) {
         autoRestart = !!options.autoRestart;
       } else {
         autoRestart = true;
@@ -169,7 +190,9 @@
     // abort the listening session (aka stop)
     abort: function() {
       autoRestart = false;
-      recognition.abort();
+      if (isInitialized) {
+        recognition.abort();
+      }
     },
 
     // Turn on output of debug messages to the console. Ugly, but super-handy!
@@ -184,16 +207,17 @@
     // Set the language the user will speak in. If not called, defaults to 'en-US'.
     // e.g. 'fr-FR' (French-France), 'es-CR' (Español-Costa Rica)
     setLanguage: function(language) {
-      lang = language;
-      if (recognition && recognition.abort) {
-        recognition.lang = language;
-      }
+      initIfNeeded();
+      recognition.lang = language;
     },
 
     // Add additional commands that annyang will respond to. Similar in syntax to annyang.init()
     addCommands: function(commands) {
       var cb,
           command;
+
+      initIfNeeded();
+
       for (var phrase in commands) {
         if (commands.hasOwnProperty(phrase)) {
           cb = root[commands[phrase]] || commands[phrase];
@@ -228,7 +252,7 @@
     // start, error, end, result, resultMatch, resultNoMatch, errorNetwork, errorPermissionBlocked, errorPermissionDenied
     // Can also optionally receive a context for the callback function as the third argument
     addCallback: function(type, callback, context) {
-      if (callbacks[type]  === void 0) {
+      if (callbacks[type]  === undefined) {
         return;
       }
       var cb = root[callback] || callback;
