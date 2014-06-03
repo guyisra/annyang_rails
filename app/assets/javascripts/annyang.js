@@ -235,8 +235,12 @@
       }
     },
 
-    // Remove existing commands. Called with a single phrase or an array of phrases
+    // Remove existing commands. Called with a single phrase, array of phrases, or methodically. Pass no params to remove all commands.
     removeCommands: function(commandsToRemove) {
+      if (commandsToRemove === undefined) {
+        commandsList = [];
+        return;
+      }
       commandsToRemove = Array.isArray(commandsToRemove) ? commandsToRemove : [commandsToRemove];
       commandsList = commandsList.filter(function(command) {
         for (var i = 0; i<commandsToRemove.length; i++) {
